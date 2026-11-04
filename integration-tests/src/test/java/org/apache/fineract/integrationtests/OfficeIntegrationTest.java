@@ -66,6 +66,9 @@ public class OfficeIntegrationTest extends FeignIntegrationTest {
 
         PutOfficesOfficeIdResponse updateResult = officeHelper.updateOfficeByExternalId(externalId, name, date);
         Assertions.assertEquals(officeId, updateResult.getOfficeId());
+        Assertions.assertNotNull(updateResult.getChanges());
+        Assertions.assertEquals(name, updateResult.getChanges().getName());
+        Assertions.assertEquals(date, updateResult.getChanges().getOpeningDate());
 
         GetOfficesResponse updatedOffice = officeHelper.retrieveOffice(officeId);
 
@@ -86,5 +89,25 @@ public class OfficeIntegrationTest extends FeignIntegrationTest {
 
         Assertions.assertEquals(name, updatedOffice.getName());
         Assertions.assertTrue(DateUtils.isEqual(updatedOffice.getOpeningDate(), LocalDate.of(2007, 7, 2)));
+    }
+
+    @Test
+    public void testOfficeModificationWithNonIsoFormatAndLocale() {
+        PostOfficesResponse createResponse = officeHelper.createOffice(LocalDate.of(2007, 7, 1));
+        Long officeId = createResponse.getResourceId();
+
+        String frName = Utils.uniqueRandomStringGenerator("FR_Office_", 4);
+        officeHelper.updateOffice(officeId, frName, "15 août 2010", "dd MMMM yyyy", "fr");
+
+        GetOfficesResponse frOffice = officeHelper.retrieveOffice(officeId);
+        Assertions.assertEquals(frName, frOffice.getName());
+        Assertions.assertTrue(DateUtils.isEqual(frOffice.getOpeningDate(), LocalDate.of(2010, 8, 15)));
+
+        String usName = Utils.uniqueRandomStringGenerator("US_Office_", 4);
+        officeHelper.updateOffice(officeId, usName, "03/04/2024", "MM/dd/yyyy", "en");
+
+        GetOfficesResponse usOffice = officeHelper.retrieveOffice(officeId);
+        Assertions.assertEquals(usName, usOffice.getName());
+        Assertions.assertTrue(DateUtils.isEqual(usOffice.getOpeningDate(), LocalDate.of(2024, 3, 4)));
     }
 }
